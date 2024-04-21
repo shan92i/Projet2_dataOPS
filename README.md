@@ -1,4 +1,4 @@
-Projet2 de OPSCI | Numéros étudiants : 21110777, 21100918
+Projet2 de OPSCI | Numéros étudiants : 21110777, 21100918, 28713631, 28610654
 
 Bienvenue sur le projet dataOPS portant sur kafka : 
 - Vous y trouverez :
