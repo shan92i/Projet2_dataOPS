@@ -1,4 +1,4 @@
-version: "3"
+version: "4.29.0"
 services:
   strapi:
     container_name: strapi
@@ -27,7 +27,7 @@ services:
     ports:
       - '1337:1337'
     networks:
-      - bruno
+      - strapi_net
     command: strapi develop # Ajout de cette ligne  
     depends_on:
       - strapiDB
@@ -46,8 +46,10 @@ services:
       - strapi-data:/var/lib/postgresql/data/ #using a volume
       #- ./data:/var/lib/postgresql/data/ # if you want to use a bind folder
 
+    ports:
+      - "5432:5432"
     networks:
-      - bruno
+      - strapi_net
   
   frontend:
     container_name: frontend
@@ -57,7 +59,7 @@ services:
     ports:
       - "5173:5173"
     networks:
-      - bruno
+      - strapi_net
     depends_on:
       - strapiDB
       
@@ -73,7 +75,7 @@ services:
     depends_on:
       - strapiDB
     networks:
-      - bruno
+      - strapi_net
       
   zookeeper:
     image: wurstmeister/zookeeper:latest
@@ -83,7 +85,7 @@ services:
     expose:
       - '2181'
     networks:
-      - bruno
+      - kafka_net
 
   kafka:
     image: wurstmeister/kafka:2.11-1.1.1
@@ -113,7 +115,7 @@ services:
     depends_on:
       - zookeeper
     networks:
-      - bruno
+      - kafka_net
 
 
   product-producer:
@@ -126,7 +128,7 @@ services:
         BROKER_1: kafka:9092
         BROKER_2: kafka:9092
         BROKER_3: kafka:9092
-        STRAPI_TOKEN: 'a35bf689cad1065b7812b9a35422f90a9e40c4c1054feeb4583abd344d936f6fc1bbbb7bfa9831e5b3d211e424803a68852e4e93c5de541a5e5a88edfd5c39225e8ea9a86ee7c14240c362243978636138f21666b2bf00a13a2bfff3f6efeab031691b397e62bdb2cfc1483a19f6975aada202cae08517d09a9a0f90c012b8e0'
+        STRAPI_TOKEN: '44ade5a1ab9624fd446d4f0d21c615333ff1f95eb8d51b06ee9a847134e4e70ef1b380081d1faeff28f1f7dabd10110abf90d9e54a68321d0af650498729b706762c79d141b255c8d10d6a0a326a367660f06e992fc4b21bd42d0085464466cf0b198a44f2022cd4b7fbc87e43f34ce8eb32eb2cf3a08555b126c045966b47af'
         STRAPI_URL: http://strapi:1337
         TOPIC: product
         ERROR_TOPIC: errors
@@ -137,7 +139,8 @@ services:
           - kafka
           - strapi
       networks:
-          - bruno
+          - kafka_net
+          
   product-consumer:
       image: arthurescriou/product-consumer:latest
       container_name: product-consumer
@@ -148,7 +151,7 @@ services:
         BROKER_1: kafka:9092
         BROKER_2: kafka:9092
         BROKER_3: kafka:9092
-        STRAPI_TOKEN: 'a35bf689cad1065b7812b9a35422f90a9e40c4c1054feeb4583abd344d936f6fc1bbbb7bfa9831e5b3d211e424803a68852e4e93c5de541a5e5a88edfd5c39225e8ea9a86ee7c14240c362243978636138f21666b2bf00a13a2bfff3f6efeab031691b397e62bdb2cfc1483a19f6975aada202cae08517d09a9a0f90c012b8e0'
+        STRAPI_TOKEN: '44ade5a1ab9624fd446d4f0d21c615333ff1f95eb8d51b06ee9a847134e4e70ef1b380081d1faeff28f1f7dabd10110abf90d9e54a68321d0af650498729b706762c79d141b255c8d10d6a0a326a367660f06e992fc4b21bd42d0085464466cf0b198a44f2022cd4b7fbc87e43f34ce8eb32eb2cf3a08555b126c045966b47af'
         STRAPI_URL: http://strapi:1337
         TOPIC: product
         BEGINNING: 'false' 
@@ -157,7 +160,8 @@ services:
             - kafka
             - strapi
       networks:
-            - bruno
+            - kafka_net
+            - strapi_net
        
   
   event-producer:
@@ -177,7 +181,7 @@ services:
           - ./eventproducer/events.csv:/var/lib/events.csv  
       
       networks:
-          - bruno
+          - kafka_net
 
       depends_on:
           - kafka
@@ -194,14 +198,15 @@ services:
           BROKER_1: kafka:9092
           BROKER_2: kafka:9092
           BROKER_3: kafka:9092
-          STRAPI_TOKEN: 'a35bf689cad1065b7812b9a35422f90a9e40c4c1054feeb4583abd344d936f6fc1bbbb7bfa9831e5b3d211e424803a68852e4e93c5de541a5e5a88edfd5c39225e8ea9a86ee7c14240c362243978636138f21666b2bf00a13a2bfff3f6efeab031691b397e62bdb2cfc1483a19f6975aada202cae08517d09a9a0f90c012b8e0'
+          STRAPI_TOKEN: '44ade5a1ab9624fd446d4f0d21c615333ff1f95eb8d51b06ee9a847134e4e70ef1b380081d1faeff28f1f7dabd10110abf90d9e54a68321d0af650498729b706762c79d141b255c8d10d6a0a326a367660f06e992fc4b21bd42d0085464466cf0b198a44f2022cd4b7fbc87e43f34ce8eb32eb2cf3a08555b126c045966b47af'
           STRAPI_URL: http://strapi:1337
           TOPIC: event
-          BEGINNING: "false"
+          BEGINNING: false
           ERROR_TOPIC: errors
     
       networks:
-          - bruno
+          - kafka_net
+          - strapi_net
 
       depends_on:
           - kafka
@@ -219,11 +224,41 @@ services:
           TOPIC: stock
           FILE_NAME: stocks.csv
       networks:
-          - bruno
+          - kafka_net
+         
       depends_on:
           - kafka
           - strapi
-          
+  mosquitto:
+      container_name: mosquitto
+      image: eclipse-mosquitto:latest
+
+      volumes:
+        - ./config/mosquitto.conf:/mosquitto/config/mosquitto.conf
+       
+      environment: 
+        TOPIC: "topic"
+        Adress: "ws://mosquitto:1883"
+
+      ports:
+        - 1883:1883
+        - 9001:9001
+      
+      networks:
+          - mqtt_net        
+  connector:
+      container_name: connector
+      image: arthurescriou/mqtt-kafka-connector:1.0.0
+      environment:
+          BROKER_1: kafka:9092
+          BROKER_2 : kafka:9092
+          BROKER_3 : kafka:9092
+          KAFKA_TOPIC : stock
+          MQTT_TOPIC : topic
+          MQTT_ENDPOINT : 'ws://mosquitto:1883'
+      networks:
+          - kafka_net
+          - mqtt_net
   stock-consumer:
       image: arthurescriou/stock-consumer:1.0.0
       container_name: stock-consumer
@@ -234,13 +269,14 @@ services:
           BROKER_1: kafka:9092
           BROKER_2: kafka:9092
           BROKER_3: kafka:9092
-          STRAPI_TOKEN: 'a35bf689cad1065b7812b9a35422f90a9e40c4c1054feeb4583abd344d936f6fc1bbbb7bfa9831e5b3d211e424803a68852e4e93c5de541a5e5a88edfd5c39225e8ea9a86ee7c14240c362243978636138f21666b2bf00a13a2bfff3f6efeab031691b397e62bdb2cfc1483a19f6975aada202cae08517d09a9a0f90c012b8e0'
+          STRAPI_TOKEN: '44ade5a1ab9624fd446d4f0d21c615333ff1f95eb8d51b06ee9a847134e4e70ef1b380081d1faeff28f1f7dabd10110abf90d9e54a68321d0af650498729b706762c79d141b255c8d10d6a0a326a367660f06e992fc4b21bd42d0085464466cf0b198a44f2022cd4b7fbc87e43f34ce8eb32eb2cf3a08555b126c045966b47af'
           STRAPI_URL: http://strapi:1337
           TOPIC: stock
-          BEGINNING: "false"
+          BEGINNING: false
           ERROR_TOPIC: errors
       networks:
-          - bruno
+          - strapi_net
+          - kafka_net
       depends_on:
           - kafka
           - strapi
@@ -250,6 +286,12 @@ volumes:
   strapi-data:
 
 networks:
-  bruno:
-    name: bruno
+  strapi_net:
+    name: strapi_net
     driver: bridge  # Correction ici
+  kafka_net:
+    name : kafka_net
+    driver: bridge
+  mqtt_net:
+      driver: bridge
+      name: mqtt_net
